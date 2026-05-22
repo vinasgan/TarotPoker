@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tarot Poker</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MENU — background image, mode selection
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section id="screen-menu" class="screen bg-scene">
+    <div class="scene-overlay"></div>
+    <nav class="top-nav">
+      <button class="nav-btn" onclick="showPanel('rules')">📜 Rules</button>
+      <button class="nav-btn" onclick="showPanel('cards')">🃏 Cards</button>
+    </nav>
+    <div class="menu-center">
+      <div class="logo">🃏</div>
+      <h1>Tarot Poker</h1>
+      <p class="tagline">Poker with a mystical twist</p>
+      <div class="mode-buttons">
+        <button class="mode-btn solo" onclick="startSolo()">
+          <span class="mode-icon">🧙</span>
+          <div>
+            <span class="mode-title">1 Player</span>
+            <span class="mode-sub">vs Bot · Instant start</span>
+          </div>
+        </button>
+        <button class="mode-btn versus" onclick="showScreen('2p-options')">
+          <span class="mode-icon">👥</span>
+          <div>
+            <span class="mode-title">2 Players</span>
+            <span class="mode-sub">Online · PvP</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       2-PLAYER OPTIONS — background image
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section id="screen-2p-options" class="screen bg-scene hidden">
+    <div class="scene-overlay"></div>
+    <div class="screen-header glass">
+      <button class="back-btn" onclick="showScreen('menu')">← Back</button>
+      <h2>2 Player Mode</h2>
+    </div>
+    <div class="options-list">
+      <button class="option-btn" onclick="quickMatch()">
+        <span class="opt-icon">⚡</span>
+        <div class="opt-text">
+          <div class="opt-title">Quick Match</div>
+          <div class="opt-sub">Public · Join or create automatically</div>
+        </div>
+      </button>
+      <button class="option-btn" onclick="createMatch()">
+        <span class="opt-icon">🔑</span>
+        <div class="opt-text">
+          <div class="opt-title">Private Match</div>
+          <div class="opt-sub">Get an invite code to share</div>
+        </div>
+      </button>
+      <button class="option-btn" onclick="showScreen('join-input')">
+        <span class="opt-icon">📝</span>
+        <div class="opt-text">
+          <div class="opt-title">Join by Code</div>
+          <div class="opt-sub">Enter your opponent's invite code</div>
+        </div>
+      </button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       JOIN BY CODE — background image
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section id="screen-join-input" class="screen bg-scene hidden">
+    <div class="scene-overlay"></div>
+    <div class="screen-header glass">
+      <button class="back-btn" onclick="showScreen('2p-options')">← Back</button>
+      <h2>Join by Code</h2>
+    </div>
+    <div class="join-form">
+      <p class="join-hint">Enter the 6-character invite code:</p>
+      <input id="code-input" class="code-input" type="text" maxlength="6"
+             placeholder="ABCD12" autocomplete="off" autocapitalize="characters"
+             oninput="this.value = this.value.toUpperCase()" />
+      <button class="btn-primary full-width" onclick="joinByCode()">Join Game</button>
+      <p id="join-error" class="error-msg hidden"></p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       WAITING — background image, two modes (public / private)
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section id="screen-waiting" class="screen bg-scene hidden">
+    <div class="scene-overlay"></div>
+    <div class="screen-header glass">
+      <button class="back-btn" onclick="abandonAndBack()">← Back</button>
+      <h2 id="waiting-title">Searching…</h2>
+    </div>
+    <div class="waiting-body">
+      <div class="waiting-card">
+        <div id="waiting-icon" class="waiting-icon">⚡</div>
+        <p id="waiting-heading" class="waiting-heading">Finding opponent…</p>
+        <div id="waiting-code-section" class="hidden">
+          <p class="hint">Share this code with your friend:</p>
+          <div class="invite-code" id="invite-code-display">——</div>
+          <p class="hint">Or in the bot: <code>/join <span id="invite-code-cmd">…</span></code></p>
+        </div>
+        <div class="spinner"></div>
+        <p id="waiting-hint" class="hint">Public match · anyone can join</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       GAME BOARD — table image as background
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section id="screen-game" class="screen hidden game-screen">
+
+    <!-- Event reveal banner (top of game screen, semi-transparent) -->
+    <div id="event-reveal" class="event-reveal hidden">
+      <div class="event-reveal-box">
+        <div id="event-reveal-icon" class="event-reveal-icon">🔮</div>
+        <div class="event-reveal-text">
+          <div id="event-reveal-name" class="event-reveal-name">Card Name</div>
+          <div id="event-reveal-effect" class="event-reveal-effect">Effect description</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Score bar -->
+    <header class="game-header">
+      <div class="score-block">
+        <span id="p1-name" class="player-name">P1</span>
+        <span id="p1-wins" class="wins">0</span>
+      </div>
+      <div class="round-badge">
+        <span id="round-label">Round 1</span>
+        <span id="phase-label" class="phase">—</span>
+      </div>
+      <div class="score-block right">
+        <span id="p2-wins" class="wins">0</span>
+        <span id="p2-name" class="player-name">P2</span>
+      </div>
+    </header>
+
+    <!-- Effect message -->
+    <div id="effect-msg" class="effect-msg hidden"></div>
+
+    <!-- ── Table with card zones ─────────────────────────────────────── -->
+    <div class="game-board">
+
+      <!-- OPPONENT zone (top of table) -->
+      <div class="board-zone opponent-zone">
+        <span id="opp-zone-label" class="zone-label">Opponent</span>
+        <div id="opponent-hole-cards" class="hand-cards"></div>
+      </div>
+
+      <!-- COMMUNITY zone (center, 2×3 grid) -->
+      <div class="board-zone community-zone">
+        <div id="community-grid" class="community-grid"></div>
+      </div>
+
+      <!-- MY HAND zone (bottom of table) -->
+      <div class="board-zone my-hand-zone">
+        <span class="zone-label">Your Hand</span>
+        <div id="hole-cards" class="hand-cards"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Event cards (below table) ─────────────────────────────────── -->
+    <div class="events-section">
+      <div class="section-label">
+        Event Cards
+        <span id="events-used-label" class="hint">(0/2 used)</span>
+      </div>
+      <div id="major-cards" class="card-row major-row"></div>
+    </div>
+
+    <!-- ── Action panel ───────────────────────────────────────────────── -->
+    <div id="action-panel" class="action-panel hidden">
+      <div id="move-timer" class="move-timer hidden"></div>
+      <div id="action-status" class="action-status"></div>
+      <div id="action-buttons" class="action-buttons hidden">
+        <button id="btn-trigger" class="btn-primary" disabled>Trigger Event</button>
+        <button id="btn-pass" class="btn-secondary">Pass</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ROUND END overlay  (auto-advances after 1.5 s)
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section id="screen-round-end" class="screen hidden overlay">
+    <div class="result-box">
+      <div id="round-result-icon" class="result-icon">🏆</div>
+      <h2 id="round-result-text">Round Over</h2>
+      <p id="round-result-sub"></p>
+      <p class="hint mt" style="margin-top:18px">Next round starting…</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MATCH END overlay
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section id="screen-match-end" class="screen hidden overlay">
+    <div class="result-box">
+      <div class="result-icon">🎴</div>
+      <h2 id="match-result-text">Match Over!</h2>
+      <p id="match-result-sub"></p>
+      <button id="btn-new-game" class="btn-primary mt">Back to Menu</button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       RULES PANEL
+  ══════════════════════════════════════════════════════════════════════ -->
+  <div id="panel-rules" class="side-panel hidden">
+    <div class="panel-header">
+      <h2>📜 Game Rules</h2>
+      <button class="close-btn" onclick="hidePanel()">✕</button>
+    </div>
+    <div class="panel-content">
+      <h3>Objective</h3>
+      <p>Win <strong>3 rounds</strong> to win the match.</p>
+      <h3>Each Round</h3>
+      <p>Each player receives <strong>2 hole cards</strong>. The community starts with 3 cards (Flop), then gains a 4th (Turn) and 5th (River). The best poker hand using your 2 hole cards + community cards wins.</p>
+      <h3>Event Windows</h3>
+      <p>There are <strong>3 Event Windows</strong> per round — after the Flop, Turn, and River. Both players simultaneously choose to play a <strong>Major Arcana</strong> card or <strong>Pass</strong>. You may play at most <strong>2 event cards per round</strong>.</p>
+      <h3>Hand Rankings</h3>
+      <ol>
+        <li>Royal Flush</li><li>Straight Flush</li><li>Four of a Kind</li>
+        <li>Full House</li><li>Flush</li><li>Straight</li>
+        <li>Three of a Kind</li><li>Two Pair</li><li>One Pair</li><li>High Card</li>
+      </ol>
+      <h3>Card Values</h3>
+      <p>A (15) &gt; K (14) &gt; Q (13) &gt; Knight (12) &gt; Page (11) &gt; 10 … 2</p>
+      <h3>Suits</h3>
+      <p>🔥 Wands · 💧 Cups · ⚔️ Swords · 🌿 Pentacles</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       CARDS REFERENCE PANEL
+  ══════════════════════════════════════════════════════════════════════ -->
+  <div id="panel-cards" class="side-panel hidden">
+    <div class="panel-header">
+      <h2>🃏 Major Arcana</h2>
+      <button class="close-btn" onclick="hidePanel()">✕</button>
+    </div>
+    <div class="panel-content">
+      <p class="hint">Event cards played during Event Windows to alter the board.</p>
+      <div class="arcana-list">
+        <div class="arcana-entry"><span class="ae-icon">🤡</span><div><strong>0 – The Fool</strong><br/>Add a card to the community.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🪄</span><div><strong>1 – The Magician</strong><br/>Swap your weakest hole card for a new one.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🌙</span><div><strong>2 – The High Priestess</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">👑</span><div><strong>3 – The Empress</strong><br/>Swap your weakest hole card for a new one.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🏛️</span><div><strong>4 – The Emperor</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">📜</span><div><strong>5 – The Hierophant</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">💞</span><div><strong>6 – The Lovers</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🏇</span><div><strong>7 – The Chariot</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🦁</span><div><strong>8 – Strength</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🕯️</span><div><strong>9 – The Hermit</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🎡</span><div><strong>10 – Wheel of Fortune</strong><br/>All community cards reshuffled.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">⚖️</span><div><strong>11 – Justice</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🙃</span><div><strong>12 – The Hanged Man</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">💀</span><div><strong>13 – Death</strong><br/>Remove the lowest community card.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🌊</span><div><strong>14 – Temperance</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">😈</span><div><strong>15 – The Devil</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🗼</span><div><strong>16 – The Tower</strong><br/>Remove a random community card.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">⭐</span><div><strong>17 – The Star</strong><br/>Add a card to the community.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🌑</span><div><strong>18 – The Moon</strong><br/>Remove a random community card.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">☀️</span><div><strong>19 – The Sun</strong><br/>Add a card to the community.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">📯</span><div><strong>20 – Judgement</strong><br/>Mystic vision — no direct effect.</div></div>
+        <div class="arcana-entry"><span class="ae-icon">🌍</span><div><strong>21 – The World</strong><br/>Mystic vision — no direct effect.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-backdrop" class="panel-backdrop hidden" onclick="hidePanel()"></div>
+
+</div>
+<script src="game.js"></script>
+</body>
+</html>
