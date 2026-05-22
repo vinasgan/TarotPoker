@@ -10,21 +10,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PlayerService {
 
+    private static final Pattern MINOR_CARD_PATTERN = Pattern.compile(
+            "^(2|3|4|5|6|7|8|9|10|Page|Knight|Queen|King|Ace) of (Wands|Cups|Swords|Pentacles)$"
+    );
+
     private final PlayerRepository playerRepository;
 
     @Transactional(readOnly = true)
-    public List<PlayerResponseDto> findAll(String name) {
-        List<PlayerEntity> entities = (name != null && !name.isBlank())
-                ? playerRepository.findByNameContainingIgnoreCase(name)
-                : playerRepository.findAll();
-        return entities.stream().map(this::toResponse).collect(Collectors.toList());
+    public List<PlayerResponseDto> findAll() {
+        return playerRepository.findAll().stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -44,22 +47,36 @@ public class PlayerService {
     }
 
     @Transactional
-    public Optional<PlayerResponseDto> update(String id, PlayerUpdateDto dto) {
-        return playerRepository.findById(id).map(existing -> {
-            existing.setWins(dto.getWins());
-            existing.getMinorCards().clear();
-            existing.getMinorCards().addAll(dto.getMinorCards());
-            existing.getMajorCards().clear();
-            if (dto.getMajorCards() != null) existing.getMajorCards().addAll(dto.getMajorCards());
-            return toResponse(playerRepository.save(existing));
-        });
+    public PlayerResponseDto update(String id, PlayerUpdateDto dto) {
+        PlayerEntity existing = playerRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Player with ID '" + id + "' not found"));
+
+        if (dto.getMinorCards() != null) {
+            List<String> invalid = dto.getMinorCards().stream()
+                    .filter(card -> !MINOR_CARD_PATTERN.matcher(card).matches())
+                    .toList();
+            if (!invalid.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Invalid minor card(s): " + invalid + ". Expected format: '<rank> of <suit>' " +
+                        "(ranks: 2-10, Page, Knight, Queen, King, Ace; suits: Wands, Cups, Swords, Pentacles)"
+                );
+            }
+        }
+
+        existing.setWins(dto.getWins());
+        existing.getMinorCards().clear();
+        if (dto.getMinorCards() != null) existing.getMinorCards().addAll(dto.getMinorCards());
+        existing.getMajorCards().clear();
+        if (dto.getMajorCards() != null) existing.getMajorCards().addAll(dto.getMajorCards());
+        return toResponse(playerRepository.save(existing));
     }
 
     @Transactional
-    public boolean delete(String id) {
-        if (!playerRepository.existsById(id)) return false;
+    public void delete(String id) {
+        if (!playerRepository.existsById(id)) {
+            throw new NoSuchElementException("Player with ID '" + id + "' not found");
+        }
         playerRepository.deleteById(id);
-        return true;
     }
 
     private PlayerResponseDto toResponse(PlayerEntity entity) {

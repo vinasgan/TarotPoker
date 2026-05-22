@@ -8,7 +8,4 @@ public class GameSessionCreateDto {
 
     @NotBlank(message = "userId is required")
     private String userId;
-
-    @NotBlank(message = "username is required")
-    private String username;
 }

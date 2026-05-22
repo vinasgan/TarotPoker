@@ -20,15 +20,14 @@ public class PlayerController {
     private final PlayerService playerService;
 
     @GetMapping
-    public List<PlayerResponseDto> getAll(@RequestParam(required = false) String name) {
-        return playerService.findAll(name);
+    public List<PlayerResponseDto> getAll() {
+        return playerService.findAll();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PlayerResponseDto> getById(@PathVariable String id) {
-        return playerService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(playerService.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Player with ID '" + id + "' not found")));
     }
 
     @PostMapping
@@ -40,15 +39,12 @@ public class PlayerController {
     public ResponseEntity<PlayerResponseDto> update(
             @PathVariable String id,
             @Valid @RequestBody PlayerUpdateDto dto) {
-        return playerService.update(id, dto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(playerService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
-        return playerService.delete(id)
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.notFound().build();
+        playerService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
