@@ -590,7 +590,6 @@ function minorCardHtml(c, animate = false, delayMs = 0, animClass = 'card-deal')
   const cls        = animate ? animClass : '';
   const animStyle  = animate ? ` style="--deal-delay:${delayMs}ms"` : '';
   return `<div class="card ${suitClass} ${cls}"${animStyle}>
-    <div class="suit-icon"></div>
     <div class="card-power">${powerToName(c.power)}</div>
     <div class="card-name">${c.suit || ''}</div>
   </div>`;
@@ -605,7 +604,6 @@ function faceDownHtml(animate = false, delayMs = 0) {
 function majorCardHtml(c, i) {
   const sel = i === selectedMajorIdx ? 'selected' : '';
   return `<div class="major-card ${sel}" data-index="${i}">
-    <div class="card-arcana-icon">${majorIcon(c.eventId)}</div>
     <div class="card-arcana-name">${c.name}</div>
     <div class="card-effect">${majorEffectLabel(c.eventId)}</div>
   </div>`;
