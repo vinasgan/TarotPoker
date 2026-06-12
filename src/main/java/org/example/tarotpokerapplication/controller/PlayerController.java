@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.tarotpokerapplication.dto.PlayerCreateDto;
 import org.example.tarotpokerapplication.dto.PlayerResponseDto;
 import org.example.tarotpokerapplication.dto.PlayerUpdateDto;
+import org.example.tarotpokerapplication.exception.PlayerNotFoundException;
 import org.example.tarotpokerapplication.service.PlayerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class PlayerController {
     @GetMapping("/{id}")
     public ResponseEntity<PlayerResponseDto> getById(@PathVariable String id) {
         return ResponseEntity.ok(playerService.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Player with ID '" + id + "' not found")));
+                .orElseThrow(() -> new PlayerNotFoundException(id)));
     }
 
     @PostMapping

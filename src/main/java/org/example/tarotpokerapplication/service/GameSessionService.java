@@ -3,6 +3,10 @@ package org.example.tarotpokerapplication.service;
 import lombok.RequiredArgsConstructor;
 import org.example.tarotpokerapplication.dto.GameSessionResponseDto;
 import org.example.tarotpokerapplication.entity.*;
+import org.example.tarotpokerapplication.exception.GameNotAcceptingPlayersException;
+import org.example.tarotpokerapplication.exception.GameSessionNotFoundException;
+import org.example.tarotpokerapplication.exception.InvalidGameActionException;
+import org.example.tarotpokerapplication.exception.PlayerNotFoundInSessionException;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -69,12 +73,12 @@ public class GameSessionService {
 
     public GameSessionResponseDto joinByCode(String inviteCode, String userId, String username) {
         String sessionId = codeIndex.get(inviteCode.toUpperCase());
-        if (sessionId == null) throw new NoSuchElementException("Invite code '" + inviteCode + "' not found");
+        if (sessionId == null) throw new GameSessionNotFoundException(inviteCode);
         GameSession session = sessions.get(sessionId);
         if (session == null || session.getPhase() != GamePhase.WAITING_FOR_PLAYER)
-            throw new IllegalArgumentException("Session is not accepting players");
+            throw new GameNotAcceptingPlayersException(inviteCode);
         if (userId.equals(session.getPlayer1().getId()))
-            throw new IllegalArgumentException("Cannot join your own session");
+            throw new InvalidGameActionException("Cannot join your own session");
         Player player2 = new Player(userId, resolvedName(userId, username));
         session.setPlayer2(player2);
         playerPersistenceService.syncPlayer(player2);
@@ -135,7 +139,7 @@ public class GameSessionService {
         Player actingPlayer = isPlayer1 ? session.getPlayer1() : session.getPlayer2();
         List<MajorArcanaCard> hand = actingPlayer.getMajorCards();
         if (hand.isEmpty() || cardIndex >= hand.size()) {
-            throw new IllegalArgumentException(
+            throw new InvalidGameActionException(
                     "Card index " + cardIndex + " is out of range — player has " + hand.size() + " major card(s)");
         }
         if (actingPlayer.getEventsUsed() >= 2) {
@@ -166,6 +170,7 @@ public class GameSessionService {
     }
 
     private void botActForPlayer2(GameSession session) {
+        session = requireSession(session);
         Player bot = session.getPlayer2();
         List<MajorArcanaCard> botHand = bot.getMajorCards();
         if (!botHand.isEmpty() && bot.getEventsUsed() < 2 && random.nextInt(100) < 30) {
@@ -177,6 +182,7 @@ public class GameSessionService {
     }
 
     private void startNewRound(GameSession session) {
+        session = requireSession(session);
         session.setRound(session.getRound() + 1);
         session.setLastEffectMessage(null);
         session.setRoundWinnerName(null);
@@ -196,6 +202,7 @@ public class GameSessionService {
     }
 
     private void openWindow(GameSession session, int windowNumber) {
+        session = requireSession(session);
         session.setPhase(GamePhase.EVENT_WINDOW);
         session.setWindowNumber(windowNumber);
         session.getPlayer1().setActed(false);
@@ -204,6 +211,7 @@ public class GameSessionService {
     }
 
     private void autoPassTimedOut(GameSession session) {
+        session = requireSession(session);
         if (session.getPhase() != GamePhase.EVENT_WINDOW) return;
         if (session.getWindowOpenedAt() == 0) return;
         long elapsed = System.currentTimeMillis() - session.getWindowOpenedAt();
@@ -215,12 +223,14 @@ public class GameSessionService {
     }
 
     private void markActed(GameSession session, String userId) {
+        session = requireSession(session);
         if (userId.equals(session.getPlayer1().getId())) session.getPlayer1().setActed(true);
         else if (session.getPlayer2() != null && userId.equals(session.getPlayer2().getId()))
             session.getPlayer2().setActed(true);
     }
 
     private void advanceIfBothActed(GameSession session) {
+        session = requireSession(session);
         if (!session.getPlayer1().isActed() || !session.getPlayer2().isActed()) return;
         int window = session.getWindowNumber();
         if (window < 3) {
@@ -233,6 +243,7 @@ public class GameSessionService {
     }
 
     private void endRound(GameSession session) {
+        session = requireSession(session);
         session.setPhase(GamePhase.ROUND_END);
         List<MinorArcanaCard> community = session.getCommunityCards();
         while (community.size() < 5) community.addAll(session.getDeck().drawMinor(1));
@@ -274,15 +285,20 @@ public class GameSessionService {
 
     private GameSession requireSession(String sessionId) {
         GameSession session = sessions.get(sessionId);
-        if (session == null) throw new NoSuchElementException("Session '" + sessionId + "' not found");
+        if (session == null) throw new GameSessionNotFoundException(sessionId);
         return session;
     }
 
+    private GameSession requireSession(GameSession session) {
+        return requireSession(session == null ? "unknown" : session.getSessionId());
+    }
+
     private void requireParticipant(GameSession session, String userId) {
+        session = requireSession(session);
         boolean isP1 = session.getPlayer1() != null && userId.equals(session.getPlayer1().getId());
         boolean isP2 = session.getPlayer2() != null && userId.equals(session.getPlayer2().getId());
         if (!isP1 && !isP2)
-            throw new IllegalArgumentException("User '" + userId + "' is not a participant in this session");
+            throw new PlayerNotFoundInSessionException(userId, session.getSessionId());
     }
 
     private static String resolvedName(String userId, String username) {

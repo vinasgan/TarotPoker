@@ -1,6 +1,8 @@
 package org.example.tarotpokerapplication.service;
 
 import org.example.tarotpokerapplication.entity.MinorArcanaCard;
+import org.example.tarotpokerapplication.exception.InvalidHandException;
+import org.example.tarotpokerapplication.exception.InvalidTableException;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -11,7 +13,6 @@ public class WinnerDeterminerService {
     public int determineWinner(List<MinorArcanaCard> p1, List<MinorArcanaCard> p2, List<MinorArcanaCard> table) {
         List<Integer> score1 = calculateBestHandScore(p1, table);
         List<Integer> score2 = calculateBestHandScore(p2, table);
-        if (score1.isEmpty() || score2.isEmpty()) return -1;
         for (int i = 0; i < Math.min(score1.size(), score2.size()); i++) {
             if (score1.get(i) > score2.get(i)) return 1;
             if (score1.get(i) < score2.get(i)) return 2;
@@ -24,7 +25,12 @@ public class WinnerDeterminerService {
     }
 
     private List<Integer> calculateBestHandScore(List<MinorArcanaCard> hole, List<MinorArcanaCard> table) {
-        if (hole.size() < 2 || table.size() < 4 || table.size() > 6) return new ArrayList<>();
+        if (hole.size() < 2)
+            throw new InvalidHandException("Each player must have at least 2 hole cards, got: " + hole.size());
+        if (table.size() < 4)
+            throw new InvalidTableException("Community must have at least 4 cards, got: " + table.size());
+        if (table.size() > 6)
+            throw new InvalidTableException("Community must have at most 6 cards, got: " + table.size());
 
         int[] powerCount = new int[16];
         Map<String, List<Integer>> suitMap = new HashMap<>();

@@ -76,6 +76,25 @@ public class ServiceLoggingAspect {
     @Pointcut("within(org.example.tarotpokerapplication.service..*)")
     public void serviceLayer() {}
 
+    @Pointcut("within(org.example.tarotpokerapplication.controller..*)")
+    public void controllerLayer() {}
+
+    @Around("controllerLayer()")
+    public Object logRequest(ProceedingJoinPoint pjp) throws Throwable {
+        String cls    = pjp.getTarget().getClass().getSimpleName();
+        String method = pjp.getSignature().getName();
+        logger(pjp).debug("→ {}.{}()", cls, method);
+        try {
+            Object result = pjp.proceed();
+            logger(pjp).debug("← {}.{}() completed", cls, method);
+            return result;
+        } catch (Throwable ex) {
+            logger(pjp).warn("{}.{}() — {}: {}", cls, method,
+                    ex.getClass().getSimpleName(), ex.getMessage());
+            throw ex;
+        }
+    }
+
     @Around("sessionCreate()")
     public Object logSessionCreate(ProceedingJoinPoint pjp) throws Throwable {
         String userId   = str(pjp, 0);
@@ -179,8 +198,7 @@ public class ServiceLoggingAspect {
         int cardIndex       = (int)         pjp.getArgs()[2];
         Player player       = isPlayer1 ? session.getPlayer1() : session.getPlayer2();
         List<MajorArcanaCard> hand = player.getMajorCards();
-        String cardName = (cardIndex >= 0 && cardIndex < hand.size())
-                ? hand.get(cardIndex).getName() : "unknown";
+        String cardName = cardIndex >= 0 && cardIndex < hand.size() ? hand.get(cardIndex).getName() : "?";
         Object result = pjp.proceed();
         logger(pjp).info("Effect in session {} — Player {} ({}) played '{}' → {}",
                 session.getSessionId(), isPlayer1 ? 1 : 2, player.getName(),
@@ -267,7 +285,7 @@ public class ServiceLoggingAspect {
         return result;
     }
 
-    @AfterThrowing(pointcut = "serviceLayer()", throwing = "ex")
+    @AfterThrowing(pointcut = "serviceLayer() && !effectApply()", throwing = "ex")
     public void logError(JoinPoint jp, Throwable ex) {
         String matchId = MDC.get(MDC_MATCH);
         String prefix  = matchId != null ? "[session=" + matchId + "] " : "";

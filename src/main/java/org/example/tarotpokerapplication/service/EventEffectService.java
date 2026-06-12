@@ -4,6 +4,7 @@ import org.example.tarotpokerapplication.entity.GameSession;
 import org.example.tarotpokerapplication.entity.MajorArcanaCard;
 import org.example.tarotpokerapplication.entity.MinorArcanaCard;
 import org.example.tarotpokerapplication.entity.Player;
+import org.example.tarotpokerapplication.exception.InvalidCardIndexException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,8 +22,7 @@ public class EventEffectService {
         List<MajorArcanaCard> hand = player.getMajorCards();
 
         if (cardIndex < 0 || cardIndex >= hand.size()) {
-            session.setLastEffectMessage("Invalid card selection.");
-            return;
+            throw new InvalidCardIndexException(cardIndex, hand.size());
         }
 
         MajorArcanaCard card = hand.remove(cardIndex);

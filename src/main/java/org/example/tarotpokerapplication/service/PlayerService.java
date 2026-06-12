@@ -6,11 +6,13 @@ import org.example.tarotpokerapplication.db.PlayerRepository;
 import org.example.tarotpokerapplication.dto.PlayerCreateDto;
 import org.example.tarotpokerapplication.dto.PlayerResponseDto;
 import org.example.tarotpokerapplication.dto.PlayerUpdateDto;
+import org.example.tarotpokerapplication.exception.InvalidGameActionException;
+import org.example.tarotpokerapplication.exception.PlayerAlreadyExistsException;
+import org.example.tarotpokerapplication.exception.PlayerNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -38,7 +40,7 @@ public class PlayerService {
     @Transactional
     public PlayerResponseDto create(PlayerCreateDto dto) {
         if (playerRepository.existsById(dto.getId())) {
-            throw new IllegalArgumentException("Player with ID '" + dto.getId() + "' already exists");
+            throw new PlayerAlreadyExistsException(dto.getId());
         }
         PlayerEntity entity = new PlayerEntity();
         entity.setId(dto.getId());
@@ -49,14 +51,14 @@ public class PlayerService {
     @Transactional
     public PlayerResponseDto update(String id, PlayerUpdateDto dto) {
         PlayerEntity existing = playerRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Player with ID '" + id + "' not found"));
+                .orElseThrow(() -> new PlayerNotFoundException(id));
 
         if (dto.getMinorCards() != null) {
             List<String> invalid = dto.getMinorCards().stream()
                     .filter(card -> !MINOR_CARD_PATTERN.matcher(card).matches())
                     .toList();
             if (!invalid.isEmpty()) {
-                throw new IllegalArgumentException(
+                throw new InvalidGameActionException(
                         "Invalid minor card(s): " + invalid + ". Expected format: '<rank> of <suit>' " +
                         "(ranks: 2-10, Page, Knight, Queen, King, Ace; suits: Wands, Cups, Swords, Pentacles)"
                 );
@@ -74,7 +76,7 @@ public class PlayerService {
     @Transactional
     public void delete(String id) {
         if (!playerRepository.existsById(id)) {
-            throw new NoSuchElementException("Player with ID '" + id + "' not found");
+            throw new PlayerNotFoundException(id);
         }
         playerRepository.deleteById(id);
     }
