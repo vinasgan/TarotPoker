@@ -1,6 +1,7 @@
 package org.example.tarotpokerapplication.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.tarotpokerapplication.db.PlayerEntity;
 import org.example.tarotpokerapplication.db.PlayerRepository;
 import org.example.tarotpokerapplication.dto.PlayerCreateDto;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlayerService {
@@ -40,12 +42,15 @@ public class PlayerService {
     @Transactional
     public PlayerResponseDto create(PlayerCreateDto dto) {
         if (playerRepository.existsById(dto.getId())) {
+            log.warn("Player already exists id={}", dto.getId());
             throw new PlayerAlreadyExistsException(dto.getId());
         }
         PlayerEntity entity = new PlayerEntity();
         entity.setId(dto.getId());
         entity.setName(dto.getName());
-        return toResponse(playerRepository.save(entity));
+        PlayerResponseDto result = toResponse(playerRepository.save(entity));
+        log.info("Player created id={} name={}", dto.getId(), dto.getName());
+        return result;
     }
 
     @Transactional
@@ -58,6 +63,7 @@ public class PlayerService {
                     .filter(card -> !MINOR_CARD_PATTERN.matcher(card).matches())
                     .toList();
             if (!invalid.isEmpty()) {
+                log.warn("Invalid minor cards in update request id={} invalid={}", id, invalid);
                 throw new InvalidGameActionException(
                         "Invalid minor card(s): " + invalid + ". Expected format: '<rank> of <suit>' " +
                         "(ranks: 2-10, Page, Knight, Queen, King, Ace; suits: Wands, Cups, Swords, Pentacles)"
@@ -70,15 +76,19 @@ public class PlayerService {
         if (dto.getMinorCards() != null) existing.getMinorCards().addAll(dto.getMinorCards());
         existing.getMajorCards().clear();
         if (dto.getMajorCards() != null) existing.getMajorCards().addAll(dto.getMajorCards());
-        return toResponse(playerRepository.save(existing));
+        PlayerResponseDto result = toResponse(playerRepository.save(existing));
+        log.info("Player updated id={} wins={}", id, dto.getWins());
+        return result;
     }
 
     @Transactional
     public void delete(String id) {
         if (!playerRepository.existsById(id)) {
+            log.warn("Delete requested for non-existent player id={}", id);
             throw new PlayerNotFoundException(id);
         }
         playerRepository.deleteById(id);
+        log.info("Player deleted id={}", id);
     }
 
     private PlayerResponseDto toResponse(PlayerEntity entity) {

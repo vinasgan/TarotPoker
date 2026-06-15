@@ -2,6 +2,7 @@ package org.example.tarotpokerapplication.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.tarotpokerapplication.dto.PlayerCreateDto;
 import org.example.tarotpokerapplication.dto.PlayerResponseDto;
 import org.example.tarotpokerapplication.dto.PlayerUpdateDto;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/players")
 @RequiredArgsConstructor
@@ -22,17 +24,20 @@ public class PlayerController {
 
     @GetMapping
     public List<PlayerResponseDto> getAll() {
+        log.info("GET /players");
         return playerService.findAll();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PlayerResponseDto> getById(@PathVariable String id) {
+        log.info("GET /players/{}", id);
         return ResponseEntity.ok(playerService.findById(id)
                 .orElseThrow(() -> new PlayerNotFoundException(id)));
     }
 
     @PostMapping
     public ResponseEntity<PlayerResponseDto> create(@Valid @RequestBody PlayerCreateDto dto) {
+        log.info("POST /players id={} name={}", dto.getId(), dto.getName());
         return ResponseEntity.ok(playerService.create(dto));
     }
 
@@ -40,11 +45,13 @@ public class PlayerController {
     public ResponseEntity<PlayerResponseDto> update(
             @PathVariable String id,
             @Valid @RequestBody PlayerUpdateDto dto) {
+        log.info("PUT /players/{}", id);
         return ResponseEntity.ok(playerService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
+        log.info("DELETE /players/{}", id);
         playerService.delete(id);
         return ResponseEntity.noContent().build();
     }

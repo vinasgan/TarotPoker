@@ -1,6 +1,7 @@
 package org.example.tarotpokerapplication.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.tarotpokerapplication.dto.GameSessionResponseDto;
 import org.example.tarotpokerapplication.entity.*;
 import org.example.tarotpokerapplication.exception.GameNotAcceptingPlayersException;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GameSessionService {
@@ -38,6 +40,7 @@ public class GameSessionService {
         codeIndex.put(inviteCode, sessionId);
         playerPersistenceService.syncPlayer(player1);
         playerPersistenceService.syncSession(session);
+        log.info("Private session created sessionId={} inviteCode={} userId={}", sessionId, inviteCode, userId);
         return GameSessionResponseDto.from(session, userId);
     }
 
@@ -53,6 +56,7 @@ public class GameSessionService {
         codeIndex.put(inviteCode, sessionId);
         playerPersistenceService.syncPlayer(player1);
         playerPersistenceService.syncSession(session);
+        log.info("Public session created sessionId={} inviteCode={} userId={}", sessionId, inviteCode, userId);
         return GameSessionResponseDto.from(session, userId);
     }
 
@@ -68,6 +72,7 @@ public class GameSessionService {
         sessions.put(sessionId, session);
         playerPersistenceService.syncPlayer(player1);
         startNewRound(session);
+        log.info("Bot session created sessionId={} userId={}", sessionId, userId);
         return GameSessionResponseDto.from(session, userId);
     }
 
@@ -84,6 +89,7 @@ public class GameSessionService {
         playerPersistenceService.syncPlayer(player2);
         startNewRound(session);
         playerPersistenceService.syncSession(session);
+        log.info("Player joined by code sessionId={} code={} userId={}", sessionId, inviteCode, userId);
         return GameSessionResponseDto.from(session, userId);
     }
 
@@ -101,8 +107,10 @@ public class GameSessionService {
             playerPersistenceService.syncPlayer(player2);
             startNewRound(existing);
             playerPersistenceService.syncSession(existing);
+            log.info("Player joined public session sessionId={} userId={}", existing.getSessionId(), userId);
             return GameSessionResponseDto.from(existing, userId);
         }
+        log.info("No open public session found, creating new one for userId={}", userId);
         return createPublicSession(userId, username);
     }
 
@@ -128,6 +136,7 @@ public class GameSessionService {
         if (session.isBotMode() && !session.getPlayer2().isActed()) botActForPlayer2(session);
         advanceIfBothActed(session);
         playerPersistenceService.syncSession(session);
+        log.debug("Player passed sessionId={} userId={} window={}", sessionId, userId, session.getWindowNumber());
         return GameSessionResponseDto.from(session, userId);
     }
 
@@ -143,6 +152,7 @@ public class GameSessionService {
                     "Card index " + cardIndex + " is out of range — player has " + hand.size() + " major card(s)");
         }
         if (actingPlayer.getEventsUsed() >= 2) {
+            log.warn("Player exceeded event limit sessionId={} userId={}", sessionId, userId);
             session.setLastEffectMessage("You have already used 2 events this round.");
             return GameSessionResponseDto.from(session, userId);
         }
@@ -152,6 +162,7 @@ public class GameSessionService {
         if (session.isBotMode() && !session.getPlayer2().isActed()) botActForPlayer2(session);
         advanceIfBothActed(session);
         playerPersistenceService.syncSession(session);
+        log.debug("Event triggered sessionId={} userId={} cardIndex={}", sessionId, userId, cardIndex);
         return GameSessionResponseDto.from(session, userId);
     }
 
@@ -159,6 +170,7 @@ public class GameSessionService {
         GameSession session = requireSession(sessionId);
         sessions.remove(sessionId);
         if (session.getInviteCode() != null) codeIndex.remove(session.getInviteCode());
+        log.info("Session abandoned sessionId={}", sessionId);
     }
 
     public GameSessionResponseDto nextRound(String sessionId, String userId) {
@@ -199,6 +211,7 @@ public class GameSessionService {
         session.getCommunityCards().addAll(session.getDeck().drawMinor(3));
         session.setFirstActorIsPlayer1(random.nextBoolean());
         openWindow(session, 1);
+        log.info("Round {} started sessionId={}", session.getRound(), session.getSessionId());
     }
 
     private void openWindow(GameSession session, int windowNumber) {
@@ -216,6 +229,7 @@ public class GameSessionService {
         if (session.getWindowOpenedAt() == 0) return;
         long elapsed = System.currentTimeMillis() - session.getWindowOpenedAt();
         if (elapsed < MOVE_TIMEOUT_MS) return;
+        log.warn("Move timeout elapsed={}ms sessionId={} — auto-passing timed-out players", elapsed, session.getSessionId());
         Player p2 = session.getPlayer2();
         if (!session.getPlayer1().isActed()) markActed(session, session.getPlayer1().getId());
         if (p2 != null && !p2.isActed()) markActed(session, p2.getId());
@@ -255,17 +269,23 @@ public class GameSessionService {
             session.getPlayer1().setWins(session.getPlayer1().getWins() + 1);
             session.setRoundWinnerName(session.getPlayer1().getName());
             playerPersistenceService.syncPlayer(session.getPlayer1());
+            log.info("Round {} ended sessionId={} winner={} score={}-{}", session.getRound(), session.getSessionId(),
+                    session.getPlayer1().getName(), session.getPlayer1().getWins(), session.getPlayer2().getWins());
         } else if (result == 2) {
             session.getPlayer2().setWins(session.getPlayer2().getWins() + 1);
             session.setRoundWinnerName(session.getPlayer2().getName());
             if (!BOT_ID.equals(session.getPlayer2().getId())) {
                 playerPersistenceService.syncPlayer(session.getPlayer2());
             }
+            log.info("Round {} ended sessionId={} winner={} score={}-{}", session.getRound(), session.getSessionId(),
+                    session.getPlayer2().getName(), session.getPlayer1().getWins(), session.getPlayer2().getWins());
         } else {
             session.setRoundWinnerName(null);
+            log.info("Round {} ended sessionId={} result=draw", session.getRound(), session.getSessionId());
         }
         if (session.getPlayer1().getWins() >= WINS_TO_WIN_MATCH
                 || session.getPlayer2().getWins() >= WINS_TO_WIN_MATCH) {
+            log.info("Match ended sessionId={} matchWinner={}", session.getSessionId(), session.getRoundWinnerName());
             session.setPhase(GamePhase.MATCH_END);
         }
         playerPersistenceService.syncSession(session);
