@@ -1,7 +1,6 @@
 package org.example.tarotpokerapplication.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.tarotpokerapplication.db.GameSessionEntity;
 import org.example.tarotpokerapplication.db.GameSessionRepository;
 import org.example.tarotpokerapplication.db.PlayerEntity;
@@ -12,7 +11,6 @@ import org.example.tarotpokerapplication.entity.Player;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlayerSyncService {
@@ -36,9 +34,7 @@ public class PlayerSyncService {
         player.getHoleCards().stream().map(c -> c.getName()).forEach(entity.getMinorCards()::add);
         entity.getMajorCards().clear();
         player.getMajorCards().stream().map(c -> c.getName()).forEach(entity.getMajorCards()::add);
-        PlayerEntity saved = playerRepository.save(entity);
-        log.debug("Player synced to DB id={} wins={}", player.getId(), player.getWins());
-        return saved;
+        return playerRepository.save(entity);
     }
 
     @Transactional
@@ -65,15 +61,11 @@ public class PlayerSyncService {
             Player p2 = session.getPlayer2();
             if (p1 != null && (p2 == null || p1.getWins() > p2.getWins())) {
                 entity.setWinnerId(p1.getId());
-                log.info("Match winner persisted sessionId={} winnerId={}", session.getSessionId(), p1.getId());
             } else if (p2 != null && p2.getWins() > p1.getWins()) {
                 entity.setWinnerId(p2.getId());
-                log.info("Match winner persisted sessionId={} winnerId={}", session.getSessionId(), p2.getId());
             }
         }
 
         gameSessionRepository.save(entity);
-        log.debug("Session synced to DB sessionId={} phase={} round={}", session.getSessionId(),
-                session.getPhase(), session.getRound());
     }
 }

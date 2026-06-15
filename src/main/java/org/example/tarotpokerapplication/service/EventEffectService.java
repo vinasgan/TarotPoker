@@ -1,6 +1,5 @@
 package org.example.tarotpokerapplication.service;
 
-import lombok.extern.slf4j.Slf4j;
 import org.example.tarotpokerapplication.entity.GameSession;
 import org.example.tarotpokerapplication.entity.MajorArcanaCard;
 import org.example.tarotpokerapplication.entity.MinorArcanaCard;
@@ -13,7 +12,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
-@Slf4j
 @Service
 public class EventEffectService {
 
@@ -28,8 +26,6 @@ public class EventEffectService {
         }
 
         MajorArcanaCard card = hand.remove(cardIndex);
-        log.info("Effect applied sessionId={} player={} card='{}' eventId={}", session.getSessionId(),
-                player.getId(), card.getName(), card.getEventId());
 
         switch (card.getEventId()) {
             case 0, 17, 19 -> addCommunityCard(session, card);

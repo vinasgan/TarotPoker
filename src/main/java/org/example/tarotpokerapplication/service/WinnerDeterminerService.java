@@ -1,6 +1,5 @@
 package org.example.tarotpokerapplication.service;
 
-import lombok.extern.slf4j.Slf4j;
 import org.example.tarotpokerapplication.entity.MinorArcanaCard;
 import org.example.tarotpokerapplication.exception.InvalidHandException;
 import org.example.tarotpokerapplication.exception.InvalidTableException;
@@ -8,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
-@Slf4j
 @Service
 public class WinnerDeterminerService {
 
@@ -16,16 +14,9 @@ public class WinnerDeterminerService {
         List<Integer> score1 = calculateBestHandScore(p1, table);
         List<Integer> score2 = calculateBestHandScore(p2, table);
         for (int i = 0; i < Math.min(score1.size(), score2.size()); i++) {
-            if (score1.get(i) > score2.get(i)) {
-                log.debug("Winner determined: player1 score={} vs score={}", score1, score2);
-                return 1;
-            }
-            if (score1.get(i) < score2.get(i)) {
-                log.debug("Winner determined: player2 score={} vs score={}", score1, score2);
-                return 2;
-            }
+            if (score1.get(i) > score2.get(i)) return 1;
+            if (score1.get(i) < score2.get(i)) return 2;
         }
-        log.debug("Winner determined: draw score1={} score2={}", score1, score2);
         return 0;
     }
 
