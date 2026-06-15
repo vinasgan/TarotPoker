@@ -64,6 +64,18 @@ public class ServiceLoggingAspect {
     @Pointcut("execution(* org.example.tarotpokerapplication.service.PlayerSyncService.syncSession(..))")
     public void playerSyncSession() {}
 
+    @Pointcut("execution(* org.example.tarotpokerapplication.service.GameSessionService.getAllSessions())")
+    public void sessionGetAll() {}
+
+    @Pointcut("execution(* org.example.tarotpokerapplication.service.GameSessionService.getSession(String, String))")
+    public void sessionGetOne() {}
+
+    @Pointcut("execution(* org.example.tarotpokerapplication.service.PlayerService.findAll())")
+    public void playerFindAll() {}
+
+    @Pointcut("execution(* org.example.tarotpokerapplication.service.PlayerService.findById(String))")
+    public void playerFindById() {}
+
     @Pointcut("execution(* org.example.tarotpokerapplication.service.PlayerService.create(..))")
     public void playerCreate() {}
 
@@ -259,6 +271,42 @@ public class ServiceLoggingAspect {
             logger(pjp).info("Session {} synced to DB — phase: {}, round: {}",
                     session.getSessionId(), session.getPhase(), session.getRound());
         }
+        return result;
+    }
+
+    @Around("sessionGetAll()")
+    public Object logGetAll(ProceedingJoinPoint pjp) throws Throwable {
+        Object result = pjp.proceed();
+        logger(pjp).debug("getAllSessions — {} active sessions", ((List<?>) result).size());
+        return result;
+    }
+
+    @Around("sessionGetOne()")
+    public Object logGetOne(ProceedingJoinPoint pjp) throws Throwable {
+        String sessionId = str(pjp, 0);
+        String userId    = str(pjp, 1);
+        MDC.put(MDC_MATCH, sessionId);
+        try {
+            Object result = pjp.proceed();
+            logger(pjp).debug("getSession({}) for userId={}", sessionId, userId);
+            return result;
+        } finally {
+            MDC.remove(MDC_MATCH);
+        }
+    }
+
+    @Around("playerFindAll()")
+    public Object logPlayerFindAll(ProceedingJoinPoint pjp) throws Throwable {
+        Object result = pjp.proceed();
+        logger(pjp).debug("findAll players — {} records", ((List<?>) result).size());
+        return result;
+    }
+
+    @Around("playerFindById()")
+    public Object logPlayerFindById(ProceedingJoinPoint pjp) throws Throwable {
+        String id = str(pjp, 0);
+        java.util.Optional<?> result = (java.util.Optional<?>) pjp.proceed();
+        logger(pjp).debug("findById id={} — found: {}", id, result.isPresent());
         return result;
     }
 

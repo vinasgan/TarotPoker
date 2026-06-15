@@ -1,6 +1,7 @@
 package org.example.tarotpokerapplication.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.tarotpokerapplication.db.PlayerEntity;
 import org.example.tarotpokerapplication.db.PlayerRepository;
 import org.example.tarotpokerapplication.dto.PlayerCreateDto;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlayerService {
@@ -53,6 +55,10 @@ public class PlayerService {
         PlayerEntity existing = playerRepository.findById(id)
                 .orElseThrow(() -> new PlayerNotFoundException(id));
 
+        log.debug("update player id={} wins={} minorCards={} majorCards={}",
+                id, dto.getWins(),
+                dto.getMinorCards() != null ? dto.getMinorCards().size() : 0,
+                dto.getMajorCards() != null ? dto.getMajorCards().size() : 0);
         if (dto.getMinorCards() != null) {
             List<String> invalid = dto.getMinorCards().stream()
                     .filter(card -> !MINOR_CARD_PATTERN.matcher(card).matches())

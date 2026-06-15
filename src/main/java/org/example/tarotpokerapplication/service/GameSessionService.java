@@ -1,6 +1,7 @@
 package org.example.tarotpokerapplication.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.tarotpokerapplication.dto.GameSessionResponseDto;
 import org.example.tarotpokerapplication.entity.*;
 import org.example.tarotpokerapplication.exception.GameNotAcceptingPlayersException;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GameSessionService {
@@ -175,15 +177,20 @@ public class GameSessionService {
         List<MajorArcanaCard> botHand = bot.getMajorCards();
         if (!botHand.isEmpty() && bot.getEventsUsed() < 2 && random.nextInt(100) < 30) {
             int idx = random.nextInt(botHand.size());
+            log.debug("Bot plays card '{}' (slot {}) in session {}", botHand.get(idx).getName(), idx, session.getSessionId());
             session.setBotLastEventCard(botHand.get(idx));
             eventEffectService.applyEffect(session, false, idx);
+        } else {
+            log.debug("Bot passes in session {}", session.getSessionId());
         }
         markActed(session, BOT_ID);
     }
 
     private void startNewRound(GameSession session) {
         session = requireSession(session);
-        session.setRound(session.getRound() + 1);
+        int nextRound = session.getRound() + 1;
+        log.debug("Starting round {} in session {}", nextRound, session.getSessionId());
+        session.setRound(nextRound);
         session.setLastEffectMessage(null);
         session.setRoundWinnerName(null);
         session.setCommunityCards(new ArrayList<>());
@@ -216,6 +223,7 @@ public class GameSessionService {
         if (session.getWindowOpenedAt() == 0) return;
         long elapsed = System.currentTimeMillis() - session.getWindowOpenedAt();
         if (elapsed < MOVE_TIMEOUT_MS) return;
+        log.debug("Auto-passing timed-out players in session {} (elapsed {}ms)", session.getSessionId(), elapsed);
         Player p2 = session.getPlayer2();
         if (!session.getPlayer1().isActed()) markActed(session, session.getPlayer1().getId());
         if (p2 != null && !p2.isActed()) markActed(session, p2.getId());

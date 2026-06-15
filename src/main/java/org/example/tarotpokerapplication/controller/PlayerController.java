@@ -24,20 +24,20 @@ public class PlayerController {
 
     @GetMapping
     public List<PlayerResponseDto> getAll() {
-        log.info("GET /players");
+        log.debug("GET /players");
         return playerService.findAll();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PlayerResponseDto> getById(@PathVariable String id) {
-        log.info("GET /players/{}", id);
+        log.debug("GET /players/{}", id);
         return ResponseEntity.ok(playerService.findById(id)
                 .orElseThrow(() -> new PlayerNotFoundException(id)));
     }
 
     @PostMapping
     public ResponseEntity<PlayerResponseDto> create(@Valid @RequestBody PlayerCreateDto dto) {
-        log.info("POST /players id={} name={}", dto.getId(), dto.getName());
+        log.debug("POST /players id={} name={}", dto.getId(), dto.getName());
         return ResponseEntity.ok(playerService.create(dto));
     }
 
@@ -45,13 +45,13 @@ public class PlayerController {
     public ResponseEntity<PlayerResponseDto> update(
             @PathVariable String id,
             @Valid @RequestBody PlayerUpdateDto dto) {
-        log.info("PUT /players/{}", id);
+        log.debug("PUT /players/{}", id);
         return ResponseEntity.ok(playerService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
-        log.info("DELETE /players/{}", id);
+        log.debug("DELETE /players/{}", id);
         playerService.delete(id);
         return ResponseEntity.noContent().build();
     }

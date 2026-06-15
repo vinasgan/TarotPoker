@@ -15,6 +15,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -91,6 +92,12 @@ public class GlobalExceptionHandler {
     public Map<String, Object> handleUnreadable(HttpMessageNotReadableException ex) {
         return errorBody(HttpStatus.BAD_REQUEST,
                 "Request body is malformed or contains invalid field types. " + ex.getMostSpecificCause().getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public Map<String, Object> handleNoResource(NoResourceFoundException ex) {
+        return errorBody(HttpStatus.NOT_FOUND, "No endpoint: " + ex.getResourcePath());
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
