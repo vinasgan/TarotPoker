@@ -15,11 +15,17 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -100,9 +106,34 @@ public class GlobalExceptionHandler {
         return errorBody(HttpStatus.NOT_FOUND, "No endpoint: " + ex.getResourcePath());
     }
 
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    @ExceptionHandler(AccessDeniedException.class)
+    public Map<String, Object> handleAccessDenied(AccessDeniedException ex) {
+        return errorBody(HttpStatus.FORBIDDEN, "Access denied");
+    }
+
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(AuthenticationException.class)
+    public Map<String, Object> handleAuthentication(AuthenticationException ex) {
+        return errorBody(HttpStatus.UNAUTHORIZED, "Authentication required");
+    }
+
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(BadCredentialsException.class)
+    public Map<String, Object> handleBadCredentials() {
+        return errorBody(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public Map<String, Object> handleDuplicate(DataIntegrityViolationException ex) {
+        return errorBody(HttpStatus.CONFLICT, "Username already exists");
+    }
+
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)
-    public Map<String, Object> handleGeneral() {
+    public Map<String, Object> handleGeneral(Exception ex) {
+        log.error("Unexpected error", ex);
         return errorBody(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
     }
 

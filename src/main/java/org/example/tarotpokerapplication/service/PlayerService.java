@@ -10,6 +10,10 @@ import org.example.tarotpokerapplication.dto.PlayerUpdateDto;
 import org.example.tarotpokerapplication.exception.InvalidGameActionException;
 import org.example.tarotpokerapplication.exception.PlayerAlreadyExistsException;
 import org.example.tarotpokerapplication.exception.PlayerNotFoundException;
+import org.example.tarotpokerapplication.security.FallbackHandler;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authorization.method.AuthorizeReturnObject;
+import org.springframework.security.authorization.method.HandleAuthorizationDenied;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,11 +33,14 @@ public class PlayerService {
 
     private final PlayerRepository playerRepository;
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
     @Transactional(readOnly = true)
     public List<PlayerResponseDto> findAll() {
         return playerRepository.findAll().stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    @AuthorizeReturnObject
     @Transactional(readOnly = true)
     public Optional<PlayerResponseDto> findById(String id) {
         return playerRepository.findById(id).map(this::toResponse);
@@ -79,6 +86,8 @@ public class PlayerService {
         return toResponse(playerRepository.save(existing));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
     @Transactional
     public void delete(String id) {
         if (!playerRepository.existsById(id)) {

@@ -26,21 +26,21 @@ public class GameController {
     public ResponseEntity<GameSessionResponseDto> createPrivate(
             @Valid @RequestBody GameSessionCreateDto dto) {
         log.debug("POST /game/match/create/private userId={}", dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.createPrivateSession(dto.getUserId(), null));
+        return ResponseEntity.ok(gameSessionService.createPrivateSession(dto.getUserId(), dto.getUsername()));
     }
 
     @PostMapping("/match/create/public")
     public ResponseEntity<GameSessionResponseDto> createPublic(
             @Valid @RequestBody GameSessionCreateDto dto) {
         log.debug("POST /game/match/create/public userId={}", dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.createPublicSession(dto.getUserId(), null));
+        return ResponseEntity.ok(gameSessionService.createPublicSession(dto.getUserId(), dto.getUsername()));
     }
 
     @PostMapping("/match/create/bot")
     public ResponseEntity<GameSessionResponseDto> createBot(
             @Valid @RequestBody GameSessionCreateDto dto) {
         log.debug("POST /game/match/create/bot userId={}", dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.createBotSession(dto.getUserId(), null));
+        return ResponseEntity.ok(gameSessionService.createBotSession(dto.getUserId(), dto.getUsername()));
     }
 
     @PostMapping("/match/join/{code}")
@@ -48,14 +48,14 @@ public class GameController {
             @PathVariable String code,
             @Valid @RequestBody GameSessionCreateDto dto) {
         log.debug("POST /game/match/join/{} userId={}", code, dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.joinByCode(code, dto.getUserId(), null));
+        return ResponseEntity.ok(gameSessionService.joinByCode(code, dto.getUserId(), dto.getUsername()));
     }
 
     @PostMapping("/match/join")
     public ResponseEntity<GameSessionResponseDto> joinPublic(
             @Valid @RequestBody GameSessionCreateDto dto) {
         log.debug("POST /game/match/join userId={}", dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.joinPublicSession(dto.getUserId(), null));
+        return ResponseEntity.ok(gameSessionService.joinPublicSession(dto.getUserId(), dto.getUsername()));
     }
 
     @GetMapping("/match")

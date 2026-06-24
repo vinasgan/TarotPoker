@@ -5,11 +5,23 @@ const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
 // ── Player identity ────────────────────────────────────────────────────────
-const urlParams   = new URLSearchParams(location.search);
+const urlParams = new URLSearchParams(location.search);
+
+function jwtUsername() {
+  try {
+    const token = localStorage.getItem('jwt');
+    if (!token) return null;
+    return JSON.parse(atob(token.split('.')[1])).sub || null;
+  } catch { return null; }
+}
+
+const PLAYER_NAME = tg?.initDataUnsafe?.user?.first_name
+    || jwtUsername()
+    || 'Player';
 const PLAYER_ID   = urlParams.get('player')
     || String(tg?.initDataUnsafe?.user?.id || '')
+    || jwtUsername()
     || 'guest_' + Math.random().toString(36).slice(2, 8);
-const PLAYER_NAME = tg?.initDataUnsafe?.user?.first_name || 'Player';
 
 // ── Game state ─────────────────────────────────────────────────────────────
 let SESSION_ID       = urlParams.get('session') || null;
@@ -100,8 +112,11 @@ function tickTimer() {
   if (SESSION_ID) {
     startPolling();
     showScreen('game');
+  } else if (localStorage.getItem('jwt') && !urlParams.get('play')) {
+    // Logged-in users land on dashboard; ?play=1 skips this to allow playing
+    window.location.href = '/dashboard.html';
   } else {
-    showScreen('menu');
+    showScreen('menu');   // triggers initWelcome() via showScreen
   }
 })();
 
@@ -115,6 +130,39 @@ function showScreen(name) {
   });
   if (name !== 'round-end') document.getElementById('screen-round-end').classList.add('hidden');
   if (name !== 'match-end') document.getElementById('screen-match-end').classList.add('hidden');
+  if (name === 'menu') initWelcome();
+}
+
+function initWelcome() {
+  const msgEl   = document.getElementById('welcome-msg');
+  const linksEl = document.getElementById('auth-links');
+  if (!msgEl || !linksEl) return;
+
+  const token = localStorage.getItem('jwt');
+  if (!token) {
+    msgEl.textContent = 'Hello! Sign in to track your stats.';
+    linksEl.innerHTML =
+      '<a class="auth-link" href="/login.html">Sign In</a>' +
+      '<a class="auth-link" href="/register.html">Register</a>';
+    return;
+  }
+
+  try {
+    const payload  = JSON.parse(atob(token.split('.')[1]));
+    const username = payload.sub || 'Player';
+    msgEl.textContent = `Welcome back, ${username}!`;
+    linksEl.innerHTML =
+      `<a class="auth-link" href="/dashboard.html">📊 Stats</a>` +
+      `<button class="auth-link logout" onclick="logout()">Sign Out</button>`;
+  } catch {
+    localStorage.removeItem('jwt');
+    initWelcome();
+  }
+}
+
+function logout() {
+  localStorage.removeItem('jwt');
+  initWelcome();
 }
 
 function showPanel(name) {
@@ -269,7 +317,14 @@ async function poll() {
     const state = await api(`/game/match/${SESSION_ID}?userId=${PLAYER_ID}`);
     render(state);
   } catch (e) {
-    console.error('Poll error', e);
+    if (e.status === 404) {
+      stopPolling();
+      SESSION_ID = null;
+      lastPhase  = null;
+      showScreen('menu');
+    } else {
+      console.error('Poll error', e);
+    }
   }
 }
 
@@ -402,7 +457,12 @@ function renderActionPanel(s) {
   const me  = getMe(s);
   const opp = getOpp(s);
   const inWindow = s.phase === 'EVENT_WINDOW';
-  if (!inWindow || s.playerNumber === 0) { panel.classList.add('hidden'); clearMoveTimer(); return; }
+  if (!inWindow || s.playerNumber === 0) {
+    panel.classList.add('hidden');
+    buttons.classList.add('hidden');
+    clearMoveTimer();
+    return;
+  }
   panel.classList.remove('hidden');
 
   if (me?.acted) {
@@ -663,6 +723,10 @@ async function api(path, method = 'GET', body = null) {
     opts.body = JSON.stringify(body);
   }
   const res = await fetch(path, opts);
-  if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(`${method} ${path} → ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 }

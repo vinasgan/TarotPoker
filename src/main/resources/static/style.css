@@ -96,7 +96,36 @@ body {
 }
 .logo { font-size: 68px; filter: drop-shadow(0 4px 12px rgba(192,132,252,0.6)); }
 h1 { font-size: 30px; font-weight: 800; text-shadow: 0 2px 12px rgba(0,0,0,0.8); }
-.tagline { color: rgba(240,230,255,0.7); font-size: 13px; margin-bottom: 28px; }
+.tagline { color: rgba(240,230,255,0.7); font-size: 13px; margin-bottom: 12px; }
+
+.welcome-msg {
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 10px;
+  min-height: 18px;
+}
+
+.auth-links {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.auth-link {
+  font-size: 12px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(192,132,252,0.35);
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .2s;
+}
+
+.auth-link:hover { background: rgba(192,132,252,0.12); }
+.auth-link.logout { color: var(--hint); border-color: rgba(155,138,176,0.3); }
 
 .mode-buttons { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 320px; }
 .mode-btn {

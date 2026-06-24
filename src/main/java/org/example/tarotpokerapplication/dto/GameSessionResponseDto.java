@@ -1,7 +1,12 @@
 package org.example.tarotpokerapplication.dto;
 
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
 import org.example.tarotpokerapplication.entity.*;
+import org.example.tarotpokerapplication.security.FallbackHandler;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authorization.method.HandleAuthorizationDenied;
 
 import java.util.List;
 
@@ -9,13 +14,26 @@ import java.util.List;
 public class GameSessionResponseDto {
 
     private Long id;
+
+    @Getter(AccessLevel.NONE)
     private String winnerId;
+
     private String player1Id;
     private String player1Name;
     private String player2Id;
     private String player2Name;
     private String sessionId;
+
+    @Getter(AccessLevel.NONE)
     private String inviteCode;
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public String getWinnerId() { return winnerId; }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public String getInviteCode() { return inviteCode; }
 
     private int round;
     private GamePhase phase;

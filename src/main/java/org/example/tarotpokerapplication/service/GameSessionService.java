@@ -8,6 +8,10 @@ import org.example.tarotpokerapplication.exception.GameNotAcceptingPlayersExcept
 import org.example.tarotpokerapplication.exception.GameSessionNotFoundException;
 import org.example.tarotpokerapplication.exception.InvalidGameActionException;
 import org.example.tarotpokerapplication.exception.PlayerNotFoundInSessionException;
+import org.example.tarotpokerapplication.security.FallbackHandler;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authorization.method.AuthorizeReturnObject;
+import org.springframework.security.authorization.method.HandleAuthorizationDenied;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -108,12 +112,16 @@ public class GameSessionService {
         return createPublicSession(userId, username);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    @AuthorizeReturnObject
     public List<GameSessionResponseDto> getAllSessions() {
         return sessions.values().stream()
                 .map(s -> GameSessionResponseDto.from(s, 0))
                 .collect(java.util.stream.Collectors.toList());
     }
 
+    @AuthorizeReturnObject
     public GameSessionResponseDto getSession(String sessionId, String userId) {
         GameSession session = requireSession(sessionId);
         requireParticipant(session, userId);
@@ -125,6 +133,7 @@ public class GameSessionService {
         GameSession session = requireSession(sessionId);
         requireParticipant(session, userId);
         autoPassTimedOut(session);
+        if (session.getPhase() != GamePhase.EVENT_WINDOW) return GameSessionResponseDto.from(session, userId);
         session.setBotLastEventCard(null);
         markActed(session, userId);
         if (session.isBotMode() && !session.getPlayer2().isActed()) botActForPlayer2(session);
@@ -137,6 +146,7 @@ public class GameSessionService {
         GameSession session = requireSession(sessionId);
         requireParticipant(session, userId);
         autoPassTimedOut(session);
+        if (session.getPhase() != GamePhase.EVENT_WINDOW) return GameSessionResponseDto.from(session, userId);
         boolean isPlayer1 = userId.equals(session.getPlayer1().getId());
         Player actingPlayer = isPlayer1 ? session.getPlayer1() : session.getPlayer2();
         List<MajorArcanaCard> hand = actingPlayer.getMajorCards();
@@ -157,6 +167,8 @@ public class GameSessionService {
         return GameSessionResponseDto.from(session, userId);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
     public void abandonSession(String sessionId) {
         GameSession session = requireSession(sessionId);
         sessions.remove(sessionId);
