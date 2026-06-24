@@ -121,10 +121,8 @@ public class GameSessionService {
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    @AuthorizeReturnObject
     public GameSessionResponseDto getSession(String sessionId, String userId) {
         GameSession session = requireSession(sessionId);
-        requireParticipant(session, userId);
         autoPassTimedOut(session);
         return GameSessionResponseDto.from(session, userId);
     }

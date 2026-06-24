@@ -256,7 +256,7 @@ async function abandonAndBack() {
   stopPolling();
   if (SESSION_ID) {
     // Fire-and-forget — don't block the UI
-    fetch(`/game/match/${SESSION_ID}?userId=${PLAYER_ID}`, { method: 'DELETE' }).catch(() => {});
+    fetch(`/game/match/${SESSION_ID}`, { method: 'DELETE' }).catch(() => {});
     SESSION_ID = null;
   }
   lastPhase = null;
@@ -360,7 +360,7 @@ function render(s) {
       renderGame(s, true);   // flip opponent cards
       setTimeout(() => {
         if (lastPhase === 'ROUND_END' && SESSION_ID) renderRoundEnd(s);
-      }, 5000);
+      }, 300);
     }
     return;
   }
@@ -606,7 +606,7 @@ function renderRoundEnd(s) {
           { userId: PLAYER_ID, cardIndex: 0 });
     } catch (_) {}
     await poll();
-  }, 1500);
+  }, 700);
 }
 
 function renderMatchEnd(s) {
@@ -717,9 +717,11 @@ function majorEffectLabel(id) {
 
 
 async function api(path, method = 'GET', body = null) {
-  const opts = { method };
+  const opts = { method, headers: {} };
+  const jwt = localStorage.getItem('jwt');
+  if (jwt) opts.headers['Authorization'] = 'Bearer ' + jwt;
   if (body) {
-    opts.headers = { 'Content-Type': 'application/json' };
+    opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
   }
   const res = await fetch(path, opts);

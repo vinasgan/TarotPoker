@@ -1,14 +1,13 @@
 package org.example.tarotpokerapplication.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.tarotpokerapplication.dto.GameActionDto;
 import org.example.tarotpokerapplication.dto.GameSessionCreateDto;
 import org.example.tarotpokerapplication.dto.GameSessionResponseDto;
 import org.example.tarotpokerapplication.dto.GameSessionUpdateDto;
 import org.example.tarotpokerapplication.service.GameSessionService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,38 +23,43 @@ public class GameController {
 
     @PostMapping("/match/create/private")
     public ResponseEntity<GameSessionResponseDto> createPrivate(
-            @Valid @RequestBody GameSessionCreateDto dto) {
-        log.debug("POST /game/match/create/private userId={}", dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.createPrivateSession(dto.getUserId(), dto.getUsername()));
+            @RequestBody GameSessionCreateDto dto, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("POST /game/match/create/private userId={}", userId);
+        return ResponseEntity.ok(gameSessionService.createPrivateSession(userId, dto.getUsername()));
     }
 
     @PostMapping("/match/create/public")
     public ResponseEntity<GameSessionResponseDto> createPublic(
-            @Valid @RequestBody GameSessionCreateDto dto) {
-        log.debug("POST /game/match/create/public userId={}", dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.createPublicSession(dto.getUserId(), dto.getUsername()));
+            @RequestBody GameSessionCreateDto dto, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("POST /game/match/create/public userId={}", userId);
+        return ResponseEntity.ok(gameSessionService.createPublicSession(userId, dto.getUsername()));
     }
 
     @PostMapping("/match/create/bot")
     public ResponseEntity<GameSessionResponseDto> createBot(
-            @Valid @RequestBody GameSessionCreateDto dto) {
-        log.debug("POST /game/match/create/bot userId={}", dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.createBotSession(dto.getUserId(), dto.getUsername()));
+            @RequestBody GameSessionCreateDto dto, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("POST /game/match/create/bot userId={}", userId);
+        return ResponseEntity.ok(gameSessionService.createBotSession(userId, dto.getUsername()));
     }
 
     @PostMapping("/match/join/{code}")
     public ResponseEntity<GameSessionResponseDto> joinByCode(
             @PathVariable String code,
-            @Valid @RequestBody GameSessionCreateDto dto) {
-        log.debug("POST /game/match/join/{} userId={}", code, dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.joinByCode(code, dto.getUserId(), dto.getUsername()));
+            @RequestBody GameSessionCreateDto dto, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("POST /game/match/join/{} userId={}", code, userId);
+        return ResponseEntity.ok(gameSessionService.joinByCode(code, userId, dto.getUsername()));
     }
 
     @PostMapping("/match/join")
     public ResponseEntity<GameSessionResponseDto> joinPublic(
-            @Valid @RequestBody GameSessionCreateDto dto) {
-        log.debug("POST /game/match/join userId={}", dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.joinPublicSession(dto.getUserId(), dto.getUsername()));
+            @RequestBody GameSessionCreateDto dto, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("POST /game/match/join userId={}", userId);
+        return ResponseEntity.ok(gameSessionService.joinPublicSession(userId, dto.getUsername()));
     }
 
     @GetMapping("/match")
@@ -66,34 +70,35 @@ public class GameController {
 
     @GetMapping("/match/{sessionId}")
     public ResponseEntity<GameSessionResponseDto> getState(
-            @PathVariable String sessionId,
-            @RequestParam String userId) {
+            @PathVariable String sessionId, Authentication authentication) {
+        String userId = authentication.getName();
         log.debug("GET /game/match/{} userId={}", sessionId, userId);
         return ResponseEntity.ok(gameSessionService.getSession(sessionId, userId));
     }
 
     @PutMapping("/match/{sessionId}/pass")
     public ResponseEntity<GameSessionResponseDto> pass(
-            @PathVariable String sessionId,
-            @Valid @RequestBody GameActionDto dto) {
-        log.debug("PUT /game/match/{}/pass userId={}", sessionId, dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.pass(sessionId, dto.getUserId()));
+            @PathVariable String sessionId, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("PUT /game/match/{}/pass userId={}", sessionId, userId);
+        return ResponseEntity.ok(gameSessionService.pass(sessionId, userId));
     }
 
     @PutMapping("/match/{sessionId}/trigger")
     public ResponseEntity<GameSessionResponseDto> trigger(
             @PathVariable String sessionId,
-            @Valid @RequestBody GameSessionUpdateDto dto) {
-        log.debug("PUT /game/match/{}/trigger userId={} cardIndex={}", sessionId, dto.getUserId(), dto.getCardIndex());
-        return ResponseEntity.ok(gameSessionService.triggerEvent(sessionId, dto.getUserId(), dto.getCardIndex()));
+            @RequestBody GameSessionUpdateDto dto, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("PUT /game/match/{}/trigger userId={} cardIndex={}", sessionId, userId, dto.getCardIndex());
+        return ResponseEntity.ok(gameSessionService.triggerEvent(sessionId, userId, dto.getCardIndex()));
     }
 
     @PutMapping("/match/{sessionId}/next-round")
     public ResponseEntity<GameSessionResponseDto> nextRound(
-            @PathVariable String sessionId,
-            @Valid @RequestBody GameActionDto dto) {
-        log.debug("PUT /game/match/{}/next-round userId={}", sessionId, dto.getUserId());
-        return ResponseEntity.ok(gameSessionService.nextRound(sessionId, dto.getUserId()));
+            @PathVariable String sessionId, Authentication authentication) {
+        String userId = authentication.getName();
+        log.debug("PUT /game/match/{}/next-round userId={}", sessionId, userId);
+        return ResponseEntity.ok(gameSessionService.nextRound(sessionId, userId));
     }
 
     @DeleteMapping("/match/{sessionId}")
