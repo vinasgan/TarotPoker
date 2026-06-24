@@ -15,7 +15,11 @@ public class FallbackHandler implements MethodAuthorizationDeniedHandler {
     public Object handleDeniedInvocation(MethodInvocation methodInvocation, AuthorizationResult authorizationResult) {
         Class<?> returnType = methodInvocation.getMethod().getReturnType();
         if (returnType == void.class || returnType == Void.class) return null;
-        if (returnType == String.class) return "Oops you can't do this";
+        if (returnType == String.class) return null;
+        if (returnType == boolean.class || returnType == Boolean.class) return false;
+        if (returnType == int.class || returnType == Integer.class) return 0;
+        if (returnType == long.class || returnType == Long.class) return 0L;
+        if (returnType == double.class || returnType == Double.class) return 0.0;
         if (List.class.isAssignableFrom(returnType)) return Collections.emptyList();
         return null;
     }

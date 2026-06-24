@@ -1,7 +1,12 @@
 package org.example.tarotpokerapplication.dto;
 
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
 import org.example.tarotpokerapplication.entity.*;
+import org.example.tarotpokerapplication.security.FallbackHandler;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authorization.method.HandleAuthorizationDenied;
 
 import java.util.List;
 
@@ -9,20 +14,29 @@ import java.util.List;
 public class GameSessionResponseDto {
 
     private Long id;
+
+    @Getter(AccessLevel.NONE)
     private String winnerId;
 
+    @Getter(AccessLevel.NONE)
     private String player1Id;
     private String player1Name;
+    @Getter(AccessLevel.NONE)
     private String player2Id;
     private String player2Name;
     private String sessionId;
+
+    @Getter(AccessLevel.NONE)
     private String inviteCode;
 
     private int round;
     private GamePhase phase;
     private int windowNumber;
+
+    @Getter(AccessLevel.NONE)
     private long windowRemainingMs;
 
+    @Getter(AccessLevel.NONE)
     private List<MinorArcanaCard> communityCards;
 
     private String lastEffectMessage;
@@ -34,8 +48,43 @@ public class GameSessionResponseDto {
     private boolean publicMatch;
 
     private int playerNumber;
+
+    @Getter(AccessLevel.NONE)
     private Player player1;
+    @Getter(AccessLevel.NONE)
     private Player player2;
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public String getWinnerId() { return winnerId; }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public String getPlayer1Id() { return player1Id; }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public String getPlayer2Id() { return player2Id; }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public Player getPlayer1() { return player1; }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public Player getPlayer2() { return player2; }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public String getInviteCode() { return inviteCode; }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public List<MinorArcanaCard> getCommunityCards() { return communityCards; }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @HandleAuthorizationDenied(handlerClass = FallbackHandler.class)
+    public long getWindowRemainingMs() { return windowRemainingMs; }
 
     public static GameSessionResponseDto from(GameSession session, String userId) {
         int playerNumber = 0;
