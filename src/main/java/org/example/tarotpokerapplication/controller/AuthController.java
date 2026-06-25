@@ -1,8 +1,9 @@
-package org.example.tarotpokerapplication.security;
+package org.example.tarotpokerapplication.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.tarotpokerapplication.db.User;
 import org.example.tarotpokerapplication.db.UserRepository;
+import org.example.tarotpokerapplication.security.JwtService;
 import org.example.tarotpokerapplication.security.dto.AuthResponse;
 import org.example.tarotpokerapplication.security.dto.LoginRequest;
 import org.example.tarotpokerapplication.security.dto.RegisterRequest;
